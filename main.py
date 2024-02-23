@@ -47,27 +47,60 @@ time_series = credit_transactions_df["tmsp"].dt.time
 credit_transactions_df.insert(8, 'day', day_series)
 credit_transactions_df.insert(9, 'time', time_series)
 credit_transactions_df.insert(10, 'tmsp_minus_one_min', tmsp_minus_one_min)
-print(credit_transactions_df)
+
 
 
 number_of_rows = len(credit_transactions_df)
-for i in range(0, number_of_rows-1):
+has_predecessor = pd.Series([])
+fee = pd.Series([])
+
+for i in range(0, number_of_rows):
     actual_country = credit_transactions_df.iloc[i].loc['country']
     actual_amount = credit_transactions_df.iloc[i].loc['amount']
     actual_day = credit_transactions_df.iloc[i].loc['day']
     actual_tmsp = credit_transactions_df.iloc[i].loc['tmsp']
+    actual_success = credit_transactions_df.iloc[i].loc['success']
+    actual_psp = credit_transactions_df.iloc[i].loc['PSP']
     actual_tmsp_minus_one_min = credit_transactions_df.iloc[i].loc['tmsp_minus_one_min']
-    test1 = credit_transactions_df.loc[ (credit_transactions_df['country'] == actual_country)
+    number_of_predecessors = len(credit_transactions_df.loc[ (credit_transactions_df['country'] == actual_country)
                                         & (credit_transactions_df['amount'] == actual_amount)
                                         & (credit_transactions_df['day'] == actual_day)
                                         & (credit_transactions_df['tmsp'] < actual_tmsp)
-                                        & (credit_transactions_df['tmsp'] > actual_tmsp_minus_one_min)]
-    print(test1)
-    max_value = credit_transactions_df.tmsp.max()
+                                        & (credit_transactions_df['tmsp'] > actual_tmsp_minus_one_min)])
+    if number_of_predecessors > 0:
+        has_predecessor[i] = 1
+    else:
+        has_predecessor[i] = 0
+
+    if actual_success == 1:
+        if actual_psp == 'Moneycard':
+            fee[i] = 5
+        elif actual_psp == 'Goldcard':
+            fee[i] = 10
+        elif  actual_psp == 'UK_Card':
+            fee[i] = 3
+        elif actual_psp == 'Simplecard':
+            fee[i] = 1
+    elif actual_success == 0:
+        if actual_psp == 'Moneycard':
+            fee[i] = 2
+        elif actual_psp == 'Goldcard':
+            fee[i] = 5
+        elif  actual_psp == 'UK_Card':
+            fee[i] = 1
+        elif actual_psp == 'Simplecard':
+            fee[i] = 0.5
+
+credit_transactions_df.insert(10, 'has_predecessors', has_predecessor)
+credit_transactions_df.insert(11, 'fee', fee)
+credit_transactions_df.drop(labels='tmsp_minus_one_min', axis=1)
+
+print(credit_transactions_df)
+    # max_value = credit_transactions_df.tmsp.max()
     # print(actual_country)
     # np.where(credit_transactions_df.duplicated() == True, max(df['percentage']), 0)
 
-# result = credit_transactions_df.groupby(['country'], ['PSP']).max(['tmsp'])
+
 # print(result)
 # print(credit_transactions_df.info)
 
