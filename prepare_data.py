@@ -16,6 +16,7 @@ def prepare_data(dataframe_transactions):
     dataframe_transactions['time'] = dataframe_transactions["tmsp"].dt.time
     dataframe_transactions['hour'] = dataframe_transactions["tmsp"].dt.hour
     dataframe_transactions['minute'] = dataframe_transactions["tmsp"].dt.minute
+    dataframe_transactions['second'] = dataframe_transactions["tmsp"].dt.second
     dataframe_transactions['month_as_int'] = dataframe_transactions["tmsp"].dt.month
     dataframe_transactions['month_as_str'] = dataframe_transactions["tmsp"].dt.month_name()
     dataframe_transactions['weekday_as_str'] = dataframe_transactions["tmsp"].dt.day_name()
