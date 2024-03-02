@@ -20,7 +20,7 @@ def prepare_data(dataframe_transactions):
     dataframe_transactions['month_as_int'] = dataframe_transactions["tmsp"].dt.month
     dataframe_transactions['month_as_str'] = dataframe_transactions["tmsp"].dt.month_name()
     dataframe_transactions['weekday_as_str'] = dataframe_transactions["tmsp"].dt.day_name()
-    # dataframe_transactions['weekday_as_int'] = dataframe_transactions["tmsp"].dt.weekday
+    dataframe_transactions['weekday_as_int'] = dataframe_transactions["tmsp"].dt.weekday
     dataframe_transactions['Is_Monday'] = np.where(dataframe_transactions["tmsp"].dt.weekday == 0, 1, 0)
     dataframe_transactions['Is_Tuesday'] = np.where(dataframe_transactions["tmsp"].dt.weekday == 1, 1, 0)
     dataframe_transactions['Is_Wednesday'] = np.where(dataframe_transactions["tmsp"].dt.weekday == 2, 1, 0)

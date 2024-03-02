@@ -1,6 +1,8 @@
 
 import data_load as dl
 import prepare_data as prepdata
+import remove_collinearity as rc
+import feature_importance as fi
 
 
 # import packages
@@ -67,23 +69,28 @@ classifiers = [
 filename_credit_transactions = r'PSP_Jan_Feb_2019.xlsx'
 
 # Daten einlesen
-unprepared_df = dl.data_load(filename=filename_credit_transactions)
+# unprepared_df = dl.data_load(filename=filename_credit_transactions)
 # Daten aufbereiten
-prepared_df = prepdata.prepare_data(unprepared_df)
+# prepared_df = prepdata.prepare_data(unprepared_df)
 
-# prepared_df = dl.data_load(filename='Datengrundlage.csv')
-# prepared_df = prepared_df.drop(columns='Unnamed: 0', axis=1)
+prepared_df = dl.data_load(filename='Datengrundlage.csv')
+prepared_df = prepared_df.drop(columns='Unnamed: 0', axis=1)
 
 # Unterteilen der vorbereiten Daten nach abh. und unabhängiger Variablen
 # die Erfolgswahrscheinlichkeit soll prognostiziert werden --> Spalte success
 X = prepared_df.drop(columns='success', axis=1)
+
+
 # nur die numerischen Spalten behalten
 X = X.select_dtypes(include=np.number)
+# X = rc.calculate_vif_(X, 5)
 X.to_csv('X.csv', sep=';')
 y = prepared_df.success
 
 # Unterteilen in Test- und Trainingsmenge
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+fi.determine_feature_importance(X, X_train, y_train, X_test, y_test)
 
 # über Klassifizierungsmethoden iterieren
 for name, clf in zip(names, classifiers):
