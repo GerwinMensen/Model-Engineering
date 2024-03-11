@@ -35,6 +35,15 @@ def prepare_data(dataframe_transactions):
     dataframe_transactions['Is_UK_Card'] = np.where(dataframe_transactions["PSP"] == 'UK_Card', 1, 0)
     dataframe_transactions['Is_Simplecard'] = np.where(dataframe_transactions["PSP"] == 'Simplecard', 1, 0)
 
+    # Gebühr für erfolgreiche Transaktion
+    dataframe_transactions['success_fee'] = np.where(dataframe_transactions["PSP"] == 'Moneycard', 5,
+                                                     np.where(dataframe_transactions["PSP"] == 'Goldcard', 10,
+                                                              np.where(dataframe_transactions["PSP"] == 'UK_Card', 3,1)))
+    # Gebühr für fehlgeschlagene Transaktion
+    dataframe_transactions['fail_fee'] = np.where(dataframe_transactions["PSP"] == 'Moneycard', 2,
+                                                     np.where(dataframe_transactions["PSP"] == 'Goldcard', 5,
+                                                              np.where(dataframe_transactions["PSP"] == 'UK_Card', 1,0.5)))
+
     # Extra Spalten für die Kartenart erstellen
     dataframe_transactions['Is_Visa'] = np.where(dataframe_transactions["card"] == 'Visa', 1, 0)
     dataframe_transactions['Is_Diners'] = np.where(dataframe_transactions["card"] == 'Diners', 1, 0)
@@ -48,14 +57,23 @@ def prepare_data(dataframe_transactions):
     # temporäre Spalte "tmsp - 1 Minute" erzeugen und anfügen dieser an den Datensatz
     dataframe_transactions['tmsp_minus_one_min'] = dataframe_transactions["tmsp"] - np.timedelta64(1, 'm')
 
+    # Transaktionen nach timestamp sortieren
+    dataframe_transactions.sort_values(by=['tmsp'])
+
     # Anzahl Datensätze bestimmen
     number_of_rows = len(dataframe_transactions)
     # leeres Series-Objekt erstellen, in welchem abgelegt wird, ob zu dem Datensatz ein vorheriger anderer Datensatz
     # gefunden werden konnte, der zum gleichen Einkauf gehört
     has_predecessor = pd.Series([])
+    # Spalte für die Anzahl der bisherigen Versuche
+    current_number_of_try = pd.Series([])
+    # Spalte für die bisher gezahlte Gebühr
+    current_paid_fee = pd.Series([])
     # leeres Series-Objekt erstellen, in welchem die Höhe der Gebühr abgelegt wird
-    fee = pd.Series([])
-
+    # nach Abschluss der Spalte die binäre Variable, ob ein Einkauf Vorgänger hat, anfügen
+    dataframe_transactions.insert(10, 'has_predecessors', has_predecessor)
+    dataframe_transactions.insert(10, 'current_number_of_try', has_predecessor)
+    dataframe_transactions.insert(10, 'current_paid_fee', has_predecessor)
     # jeden Datensatz in einer Schleife durchgehen
     for i in range(0, number_of_rows):
         # Variablen mit den Werten aus dem aktuell betrachteten Datensatz belegen
@@ -65,10 +83,37 @@ def prepare_data(dataframe_transactions):
         actual_tmsp = dataframe_transactions.iloc[i].loc['tmsp']
         actual_success = dataframe_transactions.iloc[i].loc['success']
         actual_psp = dataframe_transactions.iloc[i].loc['PSP']
+        actual_fail_fee = dataframe_transactions.iloc[i].loc['fail_fee']
         actual_tmsp_minus_one_min = dataframe_transactions.iloc[i].loc['tmsp_minus_one_min']
 
+        # Alle Vorgänger bestimmen
+        predecessor_ID = np.where(
+                                        # vorheriger Datensatz muss früher sein, aber nicht mehr als 1 Minute früher
+                                        (dataframe_transactions['tmsp'] < actual_tmsp)
+                                        & (dataframe_transactions['tmsp'] > actual_tmsp_minus_one_min)
+                                        # vorheriger Datensatz muss den gleichen Betrag haben
+                                        & (dataframe_transactions['amount'] == actual_amount)
+                                        # vorheriger Datensatz muss aus dem gleichen Land kommen
+                                        & (dataframe_transactions['country'] == actual_country)
+                                        , dataframe_transactions['ID'], -1 ).max()
+        if predecessor_ID != -1:
+            dataframe_transactions.iloc[i, dataframe_transactions.columns.get_loc('has_predecessors')] = 1
+            dataframe_transactions.iloc[i, dataframe_transactions.columns.get_loc('current_number_of_try')] \
+                = 1 + np.where(dataframe_transactions['ID'] == predecessor_ID,
+                               dataframe_transactions['current_number_of_try'], 0 ).max()
+            dataframe_transactions.iloc[i, dataframe_transactions.columns.get_loc('current_paid_fee')] \
+                = np.where(dataframe_transactions['ID'] == predecessor_ID,
+                                             dataframe_transactions['fail_fee'], 0 ).max() \
+                  + np.where(dataframe_transactions['ID'] == predecessor_ID,
+                                             dataframe_transactions['current_paid_fee'], 0 ).max()
+        else:
+            dataframe_transactions.iloc[i, dataframe_transactions.columns.get_loc('has_predecessors')] = 0
+            dataframe_transactions.iloc[i, dataframe_transactions.columns.get_loc('current_number_of_try')] = 1
+            dataframe_transactions.iloc[i, dataframe_transactions.columns.get_loc('current_paid_fee')] = 0
+
+        """
         # Bestimmen, ob es einen Vorgänger gibt, auf welchen die Kriterien bzgl. desselben Einkaufs zutreffen
-        has_predecessor[i] = np.where(
+        dataframe_transactions.iloc[i,dataframe_transactions.columns.get_loc('has_predecessors')] = np.where(
                                         # vorheriger Datensatz muss früher sein, aber nicht mehr als 1 Minute früher
                                         (dataframe_transactions['tmsp'] < actual_tmsp)
                                         & (dataframe_transactions['tmsp'] > actual_tmsp_minus_one_min)
@@ -77,7 +122,8 @@ def prepare_data(dataframe_transactions):
                                         # vorheriger Datensatz muss aus dem gleichen Land kommen
                                         & (dataframe_transactions['country'] == actual_country)
                                         ,1, 0).max()
-
+        """
+        """
         # Höhe der Gebühr nach Tabelle in der Aufgabenstellung festlegen
         if actual_success == 1:
             if actual_psp == 'Moneycard':
@@ -97,11 +143,10 @@ def prepare_data(dataframe_transactions):
                 fee[i] = 1
             elif actual_psp == 'Simplecard':
                 fee[i] = 0.5
+        """
 
-    # nach Abschluss der Spalte die binäre Variable, ob ein Einkauf Vorgänger hat, anfügen
-    dataframe_transactions.insert(10, 'has_predecessors', has_predecessor)
     # nach Abschluss der Spalte die Höhe der Gebühr anfügen
-    dataframe_transactions.insert(11, 'fee', fee)
+    # dataframe_transactions.insert(11, 'fee', fee)
     # Spalte Timestamp Minus eine Minute wird nicht mehr benötigt, daher löschen
     dataframe_transactions = dataframe_transactions.drop(labels='tmsp_minus_one_min', axis=1)
 
