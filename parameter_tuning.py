@@ -7,7 +7,7 @@ from sklearn.tree import DecisionTreeClassifier
 from sklearn.metrics import confusion_matrix, accuracy_score, recall_score,  classification_report, precision_score, f1_score, mean_squared_error
 from sklearn.linear_model import LogisticRegression
 from sklearn.svm import SVC
-from sklearn.ensemble import RandomForestClassifier
+from sklearn.ensemble import RandomForestClassifier, ExtraTreesClassifier
 
 from xgboost import XGBClassifier
 
@@ -101,6 +101,14 @@ def svm_tuning (scaled_X_train,  y_train,  target):
 
 def random_forest_tuning (X_train, y_train,  target):
 
+    random_grid = {'n_estimators': [5, 6, 7, 8, 9, 10],
+                   'max_depth': [1, 2, 3, 4, 5],
+                   'min_samples_split': [1, 2, 3, 4, 5],
+                   'max_features': [2, 3, 4, 5],
+                   'max_leaf_nodes': [1, 2, 3, 4 ,5],
+                   'min_samples_leaf': [ 2, 3, 4, 5]
+                  }
+    """
     random_grid = {'n_estimators': [100, 200, 300, 400, 500],
                    'max_depth': [5, 10, 20, 30, 40, 50, 60, 70],
                    'min_samples_split': [5, 10, 20, 25, 30, 40, 50],
@@ -108,7 +116,7 @@ def random_forest_tuning (X_train, y_train,  target):
                    'max_leaf_nodes': [5, 10, 20, 25, 30, 40, 50],
                    'min_samples_leaf': [1, 100, 200, 300, 400, 500]
                   }
-
+    """
     rf = RandomForestClassifier()
     rf_random = RandomizedSearchCV(estimator=rf, cv=5, param_distributions=random_grid, scoring=target)
                                   #  n_iter=100, cv=5, verbose=2, random_state=42, n_jobs=-1)
@@ -118,6 +126,22 @@ def random_forest_tuning (X_train, y_train,  target):
     rf_best = rf_random.best_estimator_
     # result_rf = evaluate_model(rf_best, X_train, X_test, y_train, y_test)
     return rf_best
+
+def extra_trees_tuning(X_train,  y_train,  target):
+    random_grid = {'n_estimators': [5, 6, 7, 8, 9, 10],
+                   'max_depth': [1, 2, 3, 4, 5],
+                   'min_samples_split': [1, 2, 3, 4, 5],
+                   'max_features': [2, 3, 4, 5],
+                   'max_leaf_nodes': [1, 2, 3, 4 ,5],
+                   'min_samples_leaf': [ 2, 3, 4, 5]
+                  }
+
+    extra_tree_clf = ExtraTreesClassifier()
+    extra_tree_random = RandomizedSearchCV(estimator=extra_tree_clf, cv=5, param_distributions=random_grid, scoring=target)
+    extra_tree_random.fit(X_train,  y_train)
+    print('Best Parameters:', extra_tree_random.best_params_, ' \n')
+    extra_tree_best = extra_tree_random.best_estimator_
+    return extra_tree_best
 
 def xgboost_tuning (X_train,  y_train,  target):
     # declare parameters

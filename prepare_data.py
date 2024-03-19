@@ -86,13 +86,15 @@ def prepare_data(dataframe_transactions):
         actual_fail_fee = dataframe_transactions.iloc[i].loc['fail_fee']
         actual_tmsp_minus_one_min = dataframe_transactions.iloc[i].loc['tmsp_minus_one_min']
 
-        # Alle Vorgänger bestimmen
+        # Den maximalen Vorgänger bestimmen
         predecessor_ID = np.where(
                                         # vorheriger Datensatz muss früher sein, aber nicht mehr als 1 Minute früher
                                         (dataframe_transactions['tmsp'] < actual_tmsp)
                                         & (dataframe_transactions['tmsp'] > actual_tmsp_minus_one_min)
                                         # vorheriger Datensatz muss den gleichen Betrag haben
                                         & (dataframe_transactions['amount'] == actual_amount)
+                                        # vorheriger Datensatz muss fehlgeschlagen sein
+                                        & (dataframe_transactions['success'] == 0)
                                         # vorheriger Datensatz muss aus dem gleichen Land kommen
                                         & (dataframe_transactions['country'] == actual_country)
                                         , dataframe_transactions['ID'], -1 ).max()
