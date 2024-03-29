@@ -1,7 +1,6 @@
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.inspection import permutation_importance
-from sklearn.tree import export_graphviz
-from sklearn.feature_selection import mutual_info_classif
+
 
 
 import numpy as np
@@ -60,14 +59,3 @@ def show_feature_importance_tree (classifier, X_test):
     plt.xlabel('Relative Importance')
     plt.show()
 
-
-
-# Bedeutung der Variablen bei SVM berechnen
-def f_importances(coef, feature_names):
-    imp = coef
-    imp,feature_names = zip(*sorted(zip(imp,feature_names)))
-    plt.barh(range(len(feature_names)), imp, align='center')
-    plt.yticks(range(len(feature_names)), feature_names)
-    plt.show()
-
-#    https://stackoverflow.com/questions/41592661/determining-the-most-contributing-features-for-svm-classifier-in-sklearn

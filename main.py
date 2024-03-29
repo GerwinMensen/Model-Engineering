@@ -5,38 +5,15 @@ import feature_importance as fi
 import parameter_tuning as pt
 import feature_selection as fs
 
-# import packages
+# Import relevanter Packages
 import numpy as np
 import pandas as pd
-from sklearn import preprocessing
-from sklearn import svm
-from sklearn.linear_model import LogisticRegression
-from sklearn.model_selection import train_test_split
 from matplotlib import pyplot as plt
 
-from scipy.stats import uniform
-
-from sklearn.model_selection import RandomizedSearchCV
-from sklearn.datasets import make_circles, make_classification, make_moons
-from sklearn.discriminant_analysis import QuadraticDiscriminantAnalysis
-from sklearn.ensemble import AdaBoostClassifier, RandomForestClassifier
-from sklearn.gaussian_process import GaussianProcessClassifier
-from sklearn.gaussian_process.kernels import RBF
-from sklearn.inspection import DecisionBoundaryDisplay
+# Import relevanter sklearn Packages
 from sklearn.model_selection import train_test_split
 from sklearn.pipeline import Pipeline
-from sklearn.naive_bayes import GaussianNB
-from sklearn.neighbors import KNeighborsClassifier
-from sklearn.neural_network import MLPClassifier
-from sklearn.pipeline import make_pipeline
-from sklearn.preprocessing import StandardScaler
-from sklearn.svm import SVC
-from sklearn import tree
-from sklearn.tree import DecisionTreeClassifier
-from sklearn.model_selection import cross_val_score
-from sklearn.metrics import accuracy_score
-from sklearn.feature_extraction import DictVectorizer
-
+from sklearn.preprocessing import StandardScaler, LabelEncoder
 
 
 # Variablen definieren
@@ -61,92 +38,94 @@ prepared_df = prepared_df.drop(columns='ID', axis=1)
 # Unterteilen der vorbereiten Daten nach abh. und unabhängiger Variablen
 # die Erfolgswahrscheinlichkeit soll prognostiziert werden --> Spalte success
 X = prepared_df.drop(columns='success', axis=1)
-
-# nur die numerischen Spalten behalten
-X = X.select_dtypes(include=np.number)
-X.to_csv('X_numerisch.csv', sep=';')
 y = prepared_df.success
 
+# für SVM und die logistische Regression nur die numerischen Spalten behalten
+X_num = X.select_dtypes(include=np.number)
+X_num.to_csv('X_numerische_Datengrundlage.csv', sep=';')
+
+X = prepared_df.drop(columns='success', axis=1)
+
+# für Decision Tree, Random Forest, XGBoost die One-Hot-Encoding Spalten entfernen
+"""
+X_combined = X.drop(columns=['weekday_Monday', 'weekday_Tuesday', 'weekday_Wednesday', 'weekday_Thursday', 'weekday_Friday', 'weekday_Saturday',
+                             'weekday_Sunday', 'month_January', 'month_February', 'PSP_Moneycard', 'PSP_Goldcard', 'PSP_UK_Card',
+                             'PSP_Simplecard', 'card_Visa', 'card_Master', 'card_Diners', 'country_Germany', 'country_Austria', 'country_Switzerland', 'tmsp'],axis=1)
+
+X_combined.to_csv('X_kombinierte_Datengrundlage.csv', sep=';')
+"""
 
 
-# chi2_stats, p_values, X_important_features = fs.feature_selection_chi2(X,y,0.001)
-# selector = fs.feature_selection_RFECV(X, y, "f1")
-
-
-# X_relevant = fs.feature_selection_TreeClassifier(X, y, "mean")
-# X_relevant.to_csv('X_relevant.csv', sep=';')
-
-X_relevant = X
 
 # Unterteilen in Test- und Trainingsmenge
-X_train, X_test, y_train, y_test = train_test_split(X_relevant, y, test_size=0.2, random_state=42)
-# X_train, X_test, y_train, y_test = train_test_split(X_relevant, y, test_size=0.3, random_state=42)
+# für Random Forest und co
+# X_train_combined, X_test_combined, y_train_combined, y_test_combined = train_test_split(X_combined, y, test_size=0.2, random_state=42)
+# für SVM und logistische Regression
+X_train_num, X_test_num, y_train_num, y_test_num = train_test_split(X_num, y, test_size=0.2, random_state=42)
 
-# X_train.to_csv('X_train.csv', sep=';')
-# X_test.to_csv('X_test.csv', sep=';')
+
+# feature Selection für kombinierte Verfahren
+# X_train_relevant_combined = fs.feature_selection_TreeClassifier(X_train_combined, y_train_combined, "mean")
+# X_train_relevant_combined.to_csv('X_train_relevant_combined.csv', sep=';')
+
+# feature Selection für numerische Verfahren --> Vorher Encoden
+encoder = LabelEncoder()
+categorical_features = X_train_num.columns.tolist()
+for each in categorical_features:
+    X_train_num[each] = encoder.fit_transform(X_train_num[each])
+
+# X_train_relevant_num = fs.feature_selection_TreeClassifier_SelectFromModel(X_train_num, y_train_num, 'mean')
+# X_train_relevant_num.to_csv('X_train_relevant_num.csv', sep=';')
+
+X_train_relevant_num_kbest = fs.feature_selection_TreeClassifier_KBest(X_train_num, y_train_num, 10)
+X_train_relevant_num_kbest.to_csv('X_train_relevant_num_kbest.csv', sep=';')
+
+X_test_relevant_num_kbest = X_test_num[X_train_relevant_num_kbest.columns]
+
+
+best_logistic = pt.logistic_regression_tuning(X_train_relevant_num_kbest,  y_train_num,  target)
+print('Results logistic regression')
+logistic_regression_result = pt.evaluate_model(best_logistic, X_train_relevant_num_kbest, X_test_relevant_num_kbest, y_train_num, y_test_num)
+fi.show_feature_importance(best_logistic, X_test_relevant_num_kbest)
+
+
+best_decision_tree = pt.decision_tree_tuning(X_train_relevant_num_kbest,  y_train_num,  target)
+print('Results decision tree')
+decision_tree_result = pt.evaluate_model(best_decision_tree, X_train_relevant_num_kbest, X_test_relevant_num_kbest, y_train_num, y_test_num)
+fi.show_feature_importance_tree(best_decision_tree, X_test_relevant_num_kbest)
+
+
+best_random_forest = pt.random_forest_tuning(X_train_relevant_num_kbest,  y_train_num,  target)
+print('Results random forest')
+random_forest_result = pt.evaluate_model(best_random_forest,X_train_relevant_num_kbest, X_test_relevant_num_kbest, y_train_num, y_test_num)
+fi.show_feature_importance_tree(best_random_forest, X_test_relevant_num_kbest)
+
+
+best_extra_tree = pt.extra_trees_tuning(X_train_relevant_num_kbest,  y_train_num,  target)
+print('Results extra tree')
+random_extra_tree = pt.evaluate_model(best_extra_tree, X_train_relevant_num_kbest, X_test_relevant_num_kbest, y_train_num, y_test_num)
+fi.show_feature_importance_tree(best_extra_tree, X_test_relevant_num_kbest)
+
+
+
+best_xg = pt.xgboost_tuning(X_train_relevant_num_kbest,  y_train_num,  target)
+print('Results XGBoost')
+xg_result = pt.evaluate_model(best_xg, X_train_relevant_num_kbest, X_test_relevant_num_kbest, y_train_num, y_test_num)
+fi.show_feature_importance_tree(best_xg, X_test_relevant_num_kbest)
 
 
 # Scaling the features using pipeline
 pipeline = Pipeline([
     ('std_scaler', StandardScaler()),
 ])
-scaled_X_train = pipeline.fit_transform(X_train)
-scaled_X_test = pipeline.fit_transform(X_test)
+scaled_X_train = pipeline.fit_transform(X_train_relevant_num_kbest)
+scaled_X_test = pipeline.fit_transform(X_test_relevant_num_kbest)
 
 
-
-"""
-best_logistic = pt.logistic_regression_tuning(X_train,  y_train,  target)
-print('Results logistic regression')
-logistic_regression_result = pt.evaluate_model(best_logistic, X_train, X_test, y_train, y_test)
-fi.show_feature_importance(best_logistic, X_test)
-"""
-
-
-
-best_decision_tree = pt.decision_tree_tuning(X_train,  y_train,  target)
-print('Results decision tree')
-decision_tree_result = pt.evaluate_model(best_decision_tree, X_train, X_test, y_train, y_test)
-fi.show_feature_importance_tree(best_decision_tree, X_test)
-
-
-"""
-best_random_forest = pt.random_forest_tuning(X_train, y_train, target)
-print('Results random forest')
-random_forest_result = pt.evaluate_model(best_random_forest, X_train, X_test, y_train, y_test)
-fi.show_feature_importance_tree(best_random_forest, X_test)
-"""
-
-"""
-best_extra_tree = pt.extra_trees_tuning(X_train, y_train, target)
-print('Results extra tree')
-random_extra_tree = pt.evaluate_model(best_extra_tree, X_train, X_test, y_train, y_test)
-fi.show_feature_importance_tree(best_extra_tree, X_test)
-
-
-
-
-
-best_xg = pt.xgboost_tuning(X_train, y_train, target)
-print('Results XGBoost')
-xg_result = pt.evaluate_model(best_xg, X_train, X_test, y_train, y_test)
-fi.show_feature_importance_tree(best_xg, X_test)
-"""
-
-
-
-
-
-
-
-
-
-
-
-best_svm = pt.svm_tuning(scaled_X_train, y_train, target)
+best_svm = pt.svm_tuning(scaled_X_train, y_train_num, target)
 print('Results SVM')
-svm_result = pt.evaluate_model(best_svm, scaled_X_train, scaled_X_test, y_train, y_test)
-fi.show_feature_importance(best_svm, X_test )
+svm_result = pt.evaluate_model(best_svm, scaled_X_train, scaled_X_test, y_train_num, y_test_num)
+fi.show_feature_importance(best_svm, X_test_relevant_num_kbest )
 
 
 
