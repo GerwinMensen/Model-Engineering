@@ -1,9 +1,10 @@
-
+import EDA
 import data_load as dl
 import prepare_data as prepdata
 import feature_importance as fi
 import parameter_tuning as pt
 import feature_selection as fs
+import EDA as eda
 
 # Import relevanter Packages
 import numpy as np
@@ -27,61 +28,65 @@ target = "roc_auc"
 # Daten aufbereiten
 # prepared_df = prepdata.prepare_data(unprepared_df)
 
+
+
+
 # oder diese beiden Befehle
 prepared_df = dl.data_load(filename='Datengrundlage.csv')
 prepared_df = prepared_df.drop(columns='Unnamed: 0', axis=1)
 
 
-# ID löschen
-prepared_df = prepared_df.drop(columns='ID', axis=1)
+
+
+
 
 # Unterteilen der vorbereiten Daten nach abh. und unabhängiger Variablen
 # die Erfolgswahrscheinlichkeit soll prognostiziert werden --> Spalte success
 X = prepared_df.drop(columns='success', axis=1)
 y = prepared_df.success
 
-# für SVM und die logistische Regression nur die numerischen Spalten behalten
+
+
+# EDA.make_EDA(X, y)
+
+# die Spalten success_fee und month_february entfernen, da diese durch month_january bzw. fail_fee erklärt werden können
+X = X.drop(columns=['success_fee', 'month_February', 'has_predecessors'], axis=1)
+
+# Lösche alle Spalten, deren Namen mit "weekday" beginnen
+columns_to_drop = [col for col in X.columns if col.startswith(('weekday','month','PSP','country','card'))]
+X = X.drop(columns=columns_to_drop)
+
+# nur die numerischen Spalten behalten
 X_num = X.select_dtypes(include=np.number)
+
+
 X_num.to_csv('X_numerische_Datengrundlage.csv', sep=';')
-
-X = prepared_df.drop(columns='success', axis=1)
-
-# für Decision Tree, Random Forest, XGBoost die One-Hot-Encoding Spalten entfernen
-"""
-X_combined = X.drop(columns=['weekday_Monday', 'weekday_Tuesday', 'weekday_Wednesday', 'weekday_Thursday', 'weekday_Friday', 'weekday_Saturday',
-                             'weekday_Sunday', 'month_January', 'month_February', 'PSP_Moneycard', 'PSP_Goldcard', 'PSP_UK_Card',
-                             'PSP_Simplecard', 'card_Visa', 'card_Master', 'card_Diners', 'country_Germany', 'country_Austria', 'country_Switzerland', 'tmsp'],axis=1)
-
-X_combined.to_csv('X_kombinierte_Datengrundlage.csv', sep=';')
-"""
-
 
 
 # Unterteilen in Test- und Trainingsmenge
-# für Random Forest und co
-# X_train_combined, X_test_combined, y_train_combined, y_test_combined = train_test_split(X_combined, y, test_size=0.2, random_state=42)
-# für SVM und logistische Regression
 X_train_num, X_test_num, y_train_num, y_test_num = train_test_split(X_num, y, test_size=0.2, random_state=42)
 
 
-# feature Selection für kombinierte Verfahren
-# X_train_relevant_combined = fs.feature_selection_TreeClassifier(X_train_combined, y_train_combined, "mean")
-# X_train_relevant_combined.to_csv('X_train_relevant_combined.csv', sep=';')
-
-# feature Selection für numerische Verfahren --> Vorher Encoden
+# feature Selection --> Vorher Encoden
 encoder = LabelEncoder()
 categorical_features = X_train_num.columns.tolist()
 for each in categorical_features:
     X_train_num[each] = encoder.fit_transform(X_train_num[each])
 
-# X_train_relevant_num = fs.feature_selection_TreeClassifier_SelectFromModel(X_train_num, y_train_num, 'mean')
-# X_train_relevant_num.to_csv('X_train_relevant_num.csv', sep=';')
-
+# feature Selection mit KBest und dem F-Wert (10 besten Attribute bleiben erhalten)
 X_train_relevant_num_kbest = fs.feature_selection_TreeClassifier_KBest(X_train_num, y_train_num, 10)
 X_train_relevant_num_kbest.to_csv('X_train_relevant_num_kbest.csv', sep=';')
 
 X_test_relevant_num_kbest = X_test_num[X_train_relevant_num_kbest.columns]
 
+
+
+
+
+# baseline model
+baseline_model= pt.baseline_model(X_train_relevant_num_kbest, y_train_num, X_test_relevant_num_kbest, y_test_num)
+print('Results baseline model')
+baseline_model_result = pt.evaluate_model(baseline_model, X_train_relevant_num_kbest, X_test_relevant_num_kbest, y_train_num, y_test_num)
 
 best_logistic = pt.logistic_regression_tuning(X_train_relevant_num_kbest,  y_train_num,  target)
 print('Results logistic regression')
@@ -114,6 +119,13 @@ xg_result = pt.evaluate_model(best_xg, X_train_relevant_num_kbest, X_test_releva
 fi.show_feature_importance_tree(best_xg, X_test_relevant_num_kbest)
 
 
+
+"""
+# Lösche alle Spalten, deren Namen mit "encoded" beginnen
+columns_to_drop = [col for col in prepared_df.columns if col.startswith('encoded')]
+X_train_svm = prepared_df.drop(columns=columns_to_drop)
+
+
 # Scaling the features using pipeline
 pipeline = Pipeline([
     ('std_scaler', StandardScaler()),
@@ -126,7 +138,7 @@ best_svm = pt.svm_tuning(scaled_X_train, y_train_num, target)
 print('Results SVM')
 svm_result = pt.evaluate_model(best_svm, scaled_X_train, scaled_X_test, y_train_num, y_test_num)
 fi.show_feature_importance(best_svm, X_test_relevant_num_kbest )
-
+"""
 
 
 

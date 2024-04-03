@@ -4,9 +4,6 @@ from sklearn.feature_selection import chi2, RFECV
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.feature_selection import SelectKBest, f_classif, SelectFromModel
 
-from sklearn.feature_extraction.text import CountVectorizer
-from sklearn.ensemble import ExtraTreesClassifier
-from sklearn.model_selection import RandomizedSearchCV
 
 
 
@@ -23,14 +20,12 @@ def feature_selection_TreeClassifier_SelectFromModel(X,y, threshold_importance):
 def feature_selection_TreeClassifier_KBest(X,y, k):
     clf = RandomForestClassifier(random_state=42)
     clf.fit(X,y)
-    model = SelectKBest(f_classif, k=k)
+    # model = SelectKBest(f_classif, k=k)
+    model = SelectKBest(chi2, k=k)
     model.fit(X, y)
-#    pd.DataFrame(model.estimator.feature_importances_).to_csv("feature_importance_kbest.csv")
-#    pd.DataFrame(model.estimator.feature_names_in_).to_csv("feature_importance_names_kbest.csv")
     model.set_output(transform="pandas")
     X_new = model.transform(X)
     return X_new
-
 
 
 

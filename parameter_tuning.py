@@ -8,7 +8,7 @@ from sklearn.metrics import confusion_matrix, accuracy_score, recall_score, prec
 from sklearn.linear_model import LogisticRegression
 from sklearn.svm import SVC
 from sklearn.ensemble import RandomForestClassifier, ExtraTreesClassifier
-
+from sklearn.dummy import DummyClassifier
 
 from xgboost import XGBClassifier
 
@@ -47,6 +47,11 @@ def evaluate_model(classifier, X_train, X_test, y_train, y_test):
              "Test Roc_auc-Score": roc_auc_score(y_test, predictions_test),
              'Test confusion matrix': confusion_matrix(y_test, predictions_test)
              }
+
+def baseline_model (X_train, y_train, X_test, y_test):
+    model_baseline = DummyClassifier(strategy='most_frequent')
+    model_baseline.fit(X_train, y_train)
+    return model_baseline
 
 
 def logistic_regression_tuning (X_train, y_train,  target):
@@ -166,7 +171,7 @@ def xgboost_tuning (X_train,  y_train,  target):
                         silent=True, nthread=1)
     skf = StratifiedKFold(n_splits=folds, shuffle=True, random_state=1001)
     xg_random = RandomizedSearchCV(xgb, param_distributions=params, cv=5, n_iter=param_comb, scoring=target, n_jobs=-1,
-                                        verbose=1,  silent=1, random_state=1001)
+                                        verbose=1,  random_state=1001)
     xg_random.fit(X_train, y_train)
     print('Best Parameters:', xg_random.best_params_, ' \n')
     xg_best = xg_random.best_estimator_
