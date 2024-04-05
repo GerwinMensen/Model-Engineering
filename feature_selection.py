@@ -18,13 +18,13 @@ def feature_selection_TreeClassifier_SelectFromModel(X,y, threshold_importance):
     return X_new
 
 def feature_selection_TreeClassifier_KBest(X,y, k):
-    clf = RandomForestClassifier(random_state=42)
-    clf.fit(X,y)
     # model = SelectKBest(f_classif, k=k)
     model = SelectKBest(chi2, k=k)
     model.fit(X, y)
     model.set_output(transform="pandas")
     X_new = model.transform(X)
+    scores = pd.DataFrame(model.scores_)
+    scores.append(model.get_feature_names_out())
     return X_new
 
 
