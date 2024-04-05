@@ -19,8 +19,9 @@ from sklearn.preprocessing import StandardScaler, LabelEncoder
 
 # Variablen definieren
 filename_credit_transactions = r'PSP_Jan_Feb_2019.xlsx'
-target = "roc_auc"
-# target = "f1"
+# target = "roc_auc"
+target = "f1"
+# target = "accuracy"
 
 # entweder die folgenden beiden Befehle
 # Daten einlesen
@@ -52,93 +53,104 @@ y = prepared_df.success
 # die Spalten success_fee und month_february entfernen, da diese durch month_january bzw. fail_fee erklärt werden können
 X = X.drop(columns=['success_fee', 'month_February', 'has_predecessors'], axis=1)
 
-# Lösche alle Spalten, deren Namen mit "weekday" beginnen
-columns_to_drop = [col for col in X.columns if col.startswith(('weekday','month','PSP','country','card'))]
-X = X.drop(columns=columns_to_drop)
-
 # nur die numerischen Spalten behalten
 X_num = X.select_dtypes(include=np.number)
 
-
 X_num.to_csv('X_numerische_Datengrundlage.csv', sep=';')
+
+# Lösche alle Spalten, deren Namen mit "weekday" beginnen
+columns_to_drop = [col for col in X_num.columns if col.startswith(('weekday','month','PSP','country','card'))]
+X_trees = X_num.drop(columns=columns_to_drop)
+
+
 
 
 # Unterteilen in Test- und Trainingsmenge
-X_train_num, X_test_num, y_train_num, y_test_num = train_test_split(X_num, y, test_size=0.2, random_state=42)
-
-
-# feature Selection --> Vorher Encoden
-encoder = LabelEncoder()
-categorical_features = X_train_num.columns.tolist()
-for each in categorical_features:
-    X_train_num[each] = encoder.fit_transform(X_train_num[each])
+X_train, X_test, y_train, y_test = train_test_split(X_trees, y, test_size=0.2, random_state=42)
 
 # feature Selection mit KBest und dem F-Wert (10 besten Attribute bleiben erhalten)
-X_train_relevant_num_kbest = fs.feature_selection_TreeClassifier_KBest(X_train_num, y_train_num, 10)
-X_train_relevant_num_kbest.to_csv('X_train_relevant_num_kbest.csv', sep=';')
+X_train_relevant = fs.feature_selection_TreeClassifier_KBest(X_train, y_train, 10)
+X_train_relevant.to_csv('X_train_relevant_trees.csv', sep=';')
 
-X_test_relevant_num_kbest = X_test_num[X_train_relevant_num_kbest.columns]
+X_test_relevant = X_test[X_train_relevant.columns]
 
 
 
 
 
 # baseline model
-baseline_model= pt.baseline_model(X_train_relevant_num_kbest, y_train_num, X_test_relevant_num_kbest, y_test_num)
+baseline_model= pt.baseline_model(X_train_relevant, y_train, X_test_relevant, y_test)
 print('Results baseline model')
-baseline_model_result = pt.evaluate_model(baseline_model, X_train_relevant_num_kbest, X_test_relevant_num_kbest, y_train_num, y_test_num)
-
-best_logistic = pt.logistic_regression_tuning(X_train_relevant_num_kbest,  y_train_num,  target)
-print('Results logistic regression')
-logistic_regression_result = pt.evaluate_model(best_logistic, X_train_relevant_num_kbest, X_test_relevant_num_kbest, y_train_num, y_test_num)
-fi.show_feature_importance(best_logistic, X_test_relevant_num_kbest)
+baseline_model_result = pt.evaluate_model(baseline_model, X_train_relevant, X_test_relevant, y_train, y_test)
 
 
-best_decision_tree = pt.decision_tree_tuning(X_train_relevant_num_kbest,  y_train_num,  target)
+
+best_decision_tree = pt.decision_tree_tuning(X_train_relevant,  y_train,  target)
 print('Results decision tree')
-decision_tree_result = pt.evaluate_model(best_decision_tree, X_train_relevant_num_kbest, X_test_relevant_num_kbest, y_train_num, y_test_num)
-fi.show_feature_importance_tree(best_decision_tree, X_test_relevant_num_kbest)
+decision_tree_result = pt.evaluate_model(best_decision_tree, X_train_relevant, X_test_relevant, y_train, y_test)
+fi.show_feature_importance_tree(best_decision_tree, X_test_relevant)
 
 
-best_random_forest = pt.random_forest_tuning(X_train_relevant_num_kbest,  y_train_num,  target)
+best_random_forest = pt.random_forest_tuning(X_train_relevant,  y_train,  target)
 print('Results random forest')
-random_forest_result = pt.evaluate_model(best_random_forest,X_train_relevant_num_kbest, X_test_relevant_num_kbest, y_train_num, y_test_num)
-fi.show_feature_importance_tree(best_random_forest, X_test_relevant_num_kbest)
+random_forest_result = pt.evaluate_model(best_random_forest,X_train_relevant, X_test_relevant, y_train, y_test)
+fi.show_feature_importance_tree(best_random_forest, X_test_relevant)
 
 
-best_extra_tree = pt.extra_trees_tuning(X_train_relevant_num_kbest,  y_train_num,  target)
+best_extra_tree = pt.extra_trees_tuning(X_train_relevant,  y_train,  target)
 print('Results extra tree')
-random_extra_tree = pt.evaluate_model(best_extra_tree, X_train_relevant_num_kbest, X_test_relevant_num_kbest, y_train_num, y_test_num)
-fi.show_feature_importance_tree(best_extra_tree, X_test_relevant_num_kbest)
+random_extra_tree = pt.evaluate_model(best_extra_tree, X_train_relevant, X_test_relevant, y_train, y_test)
+fi.show_feature_importance_tree(best_extra_tree, X_test_relevant)
 
 
 
-best_xg = pt.xgboost_tuning(X_train_relevant_num_kbest,  y_train_num,  target)
+best_xg = pt.xgboost_tuning(X_train_relevant,  y_train,  target)
 print('Results XGBoost')
-xg_result = pt.evaluate_model(best_xg, X_train_relevant_num_kbest, X_test_relevant_num_kbest, y_train_num, y_test_num)
-fi.show_feature_importance_tree(best_xg, X_test_relevant_num_kbest)
+xg_result = pt.evaluate_model(best_xg, X_train_relevant, X_test_relevant, y_train, y_test)
+fi.show_feature_importance_tree(best_xg, X_test_relevant)
 
 
 
-"""
-# Lösche alle Spalten, deren Namen mit "encoded" beginnen
-columns_to_drop = [col for col in prepared_df.columns if col.startswith('encoded')]
-X_train_svm = prepared_df.drop(columns=columns_to_drop)
+
+
+
+# Lösche alle Spalten, deren Namen mit encoded beginnen
+columns_to_drop = [col for col in X_num.columns if col.startswith('encoded')]
+X_mathematical = X_num.drop(columns=columns_to_drop)
+
+
+
+
+
+
+
+# Unterteilen in Test- und Trainingsmenge
+X_train, X_test, y_train, y_test = train_test_split(X_mathematical, y, test_size=0.2, random_state=42)
+# feature Selection mit KBest und dem F-Wert (10 besten Attribute bleiben erhalten)
+X_train_relevant = fs.feature_selection_TreeClassifier_KBest(X_train, y_train, 10)
+X_train_relevant.to_csv('X_train_relevant_mathematical.csv', sep=';')
+X_test_relevant = X_test[X_train_relevant.columns]
+
+
+best_logistic = pt.logistic_regression_tuning(X_train_relevant,  y_train,  target)
+print('Results logistic regression')
+logistic_regression_result = pt.evaluate_model(best_logistic, X_train_relevant, X_test_relevant, y_train, y_test)
+fi.show_feature_importance(best_logistic, X_test_relevant)
 
 
 # Scaling the features using pipeline
 pipeline = Pipeline([
     ('std_scaler', StandardScaler()),
 ])
-scaled_X_train = pipeline.fit_transform(X_train_relevant_num_kbest)
-scaled_X_test = pipeline.fit_transform(X_test_relevant_num_kbest)
+scaled_X_train = pipeline.fit_transform(X_train_relevant)
+scaled_X_test = pipeline.fit_transform(X_test_relevant)
 
 
-best_svm = pt.svm_tuning(scaled_X_train, y_train_num, target)
+best_svm = pt.svm_tuning(scaled_X_train, y_train, target)
 print('Results SVM')
-svm_result = pt.evaluate_model(best_svm, scaled_X_train, scaled_X_test, y_train_num, y_test_num)
-fi.show_feature_importance(best_svm, X_test_relevant_num_kbest )
-"""
+svm_result = pt.evaluate_model(best_svm, scaled_X_train, scaled_X_test, y_train, y_test)
+fi.show_feature_importance(best_svm, X_test_relevant )
+
 
 
 

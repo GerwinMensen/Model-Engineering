@@ -79,9 +79,9 @@ def decision_tree_tuning (X_train, y_train,  target):
     path = dt.cost_complexity_pruning_path
     random_grid = {
         'criterion': ["gini", "entropy"],
-        'max_depth': np.arange(5, 11, 1),
+        'max_depth': np.arange(5, 15, 1),
         'min_samples_split': np.arange(2, 4, 1),
-        'max_leaf_nodes': np.arange(30, 81, 10),
+        'max_leaf_nodes': np.arange(30, 101, 10),
         'min_samples_leaf': np.arange(10, 101, 10),
         'max_features': ['sqrt', 'log2', None]
     }
@@ -124,9 +124,14 @@ def random_forest_tuning (X_train, y_train,  target):
 
 def svm_tuning (scaled_X_train,  y_train,  target):
     svm = SVC()
+    random_grid = {'C':[1,10],
+                  'kernel':['linear'],
+                  'gamma':['auto'] }
+    """
     random_grid = {'C':[0.01,0.05,0.1,1,10, 100, 1000],
                   'kernel':['linear','rbf'],
                   'gamma':['scale','auto'] }
+    """
     svm_random = RandomizedSearchCV(svm, param_distributions=random_grid, n_jobs=-1, cv=5, verbose=1, scoring = target)
     # Fitting the model
     svm_random.fit(scaled_X_train, y_train)

@@ -34,7 +34,7 @@ def make_EDA (X,y):
 
     # Verteilungen der binären Variablen
     bins = [-0.5, 0.5, 1.5]
-    X[binary_columns].hist(bins=[-0.5, 0.5, 1.5], layout=(3, -1), figsize=(22, 16))
+    X[binary_columns].hist(bins=[-0.5, 0.5, 1.5], layout=(4, -1), figsize=(22, 16))
     # X[binary_columns].hist(bins=[0,0.5,1], figsize=(20, 15), layout=(3, -1), ec="k")
     plt.xticks([0, 1], ['0', '1'])
     plt.suptitle('Histogramme binärer Merkmale')

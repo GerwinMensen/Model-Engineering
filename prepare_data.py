@@ -66,11 +66,11 @@ def prepare_data(dataframe_transactions):
     dataframe_prepared = dataframe_prepared.join(one_hot_features)
 
     label_encoder = LabelEncoder()
-    dataframe_prepared['encoded_country'] = label_encoder.fit_transform(X_cat['country'])
-    dataframe_prepared['encoded_PSP'] = label_encoder.fit_transform(X_cat['PSP'])
-    dataframe_prepared['encoded_card'] = label_encoder.fit_transform(X_cat['card'])
-    dataframe_prepared['encoded_weekday'] = label_encoder.fit_transform(X_cat['weekday'])
-    dataframe_prepared['encoded_month'] = label_encoder.fit_transform(X_cat['month'])
+    dataframe_prepared['enc_country'] = label_encoder.fit_transform(X_cat['country'])
+    dataframe_prepared['enc_PSP'] = label_encoder.fit_transform(X_cat['PSP'])
+    dataframe_prepared['enc_card'] = label_encoder.fit_transform(X_cat['card'])
+    dataframe_prepared['enc_weekday'] = label_encoder.fit_transform(X_cat['weekday'])
+    dataframe_prepared['enc_month'] = label_encoder.fit_transform(X_cat['month'])
 
     dataframe_prepared = dataframe_prepared.join(X_cat)
     # dataframe_transactions['month_as_int'] = dataframe_transactions["tmsp"].dt.month
