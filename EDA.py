@@ -5,6 +5,9 @@ import seaborn as sns
 
 def make_EDA (X,y):
 
+    # Lösche alle Spalten, deren Namen mit "weekday, month, PSP, country, card, day_, hour_, minute_ oder second_" beginnen
+    columns_to_drop = [col for col in X.columns if col.startswith(('day_', 'hour_', 'minute_', 'second_'))]
+    X = X.drop(columns=columns_to_drop)
 
     # Grundlegende Statistiken für numerische Features
     # print(X.describe())

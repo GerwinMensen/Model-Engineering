@@ -53,7 +53,8 @@ def prepare_data(dataframe_transactions):
     # die numerischen und zeitlichen Spalten können so hinzugefügt werden
     dataframe_prepared = dataframe_prepared.join(X_num)
     dataframe_prepared = dataframe_prepared.join(X_time)
-
+    # der Kalendertag, die Stunde, die Minute und die Sekunde müssen auch One-Hot-Encoded werden
+    X_cat = X_cat.join(dataframe_prepared[['day', 'hour', 'minute', 'second']])
     # einen OneHotEncoder erstellen und fitten
     one_hot_encoder = OneHotEncoder(sparse_output=False, handle_unknown='ignore')
     X_encoded = one_hot_encoder.fit_transform(X_cat)
@@ -72,6 +73,7 @@ def prepare_data(dataframe_transactions):
     dataframe_prepared['enc_weekday'] = label_encoder.fit_transform(X_cat['weekday'])
     dataframe_prepared['enc_month'] = label_encoder.fit_transform(X_cat['month'])
 
+    X_cat = X_cat.drop(labels=['day', 'hour', 'minute', 'second'], axis=1)
     dataframe_prepared = dataframe_prepared.join(X_cat)
     # dataframe_transactions['month_as_int'] = dataframe_transactions["tmsp"].dt.month
 

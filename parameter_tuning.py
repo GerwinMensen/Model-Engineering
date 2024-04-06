@@ -16,7 +16,7 @@ from matplotlib import pyplot as plt
 
 
 
-def evaluate_model(classifier, X_train, X_test, y_train, y_test):
+def evaluate_model(classifier, X_train, X_test, y_train, y_test, target, model):
     predictions_train = classifier.predict(X_train).round()
     predictions_test = classifier.predict(X_test).round()
     print("Train Accuracy :", accuracy_score(y_train, predictions_train))
@@ -26,7 +26,18 @@ def evaluate_model(classifier, X_train, X_test, y_train, y_test):
     print("Train Roc_auc-Score :", roc_auc_score(y_train, predictions_train))
     print("Train Confusion Matrix:")
     print(confusion_matrix(y_train, predictions_train))
+    conf_matrix = confusion_matrix(y_train, predictions_train)
+    true_neg = conf_matrix[0][0]
+    false_pos = conf_matrix[0][1]
+    false_neg = conf_matrix[1][0]
+    true_pos = conf_matrix[1][1]
     print("-"*50)
+    results_train = pd.DataFrame([
+        [target, 'train', model, accuracy_score(y_train, predictions_train), f1_score(y_train, predictions_train), roc_auc_score(y_train, predictions_train),
+         recall_score(y_train, predictions_train), precision_score(y_train, predictions_train),
+         true_neg, false_pos, false_neg, true_pos]
+    ], columns=[['target', 'type', 'model', 'accuracy', 'F1-Score', 'AUC', 'Recall', 'Precision', 'True Negative', 'False Positive', 'False Negative', 'True Positive' ]])
+
     print("Test Accuracy :", accuracy_score(y_test, predictions_test))
     print("Test Recall :", recall_score(y_test, predictions_test))
     print("Test Precision :", precision_score(y_test, predictions_test))
@@ -34,19 +45,19 @@ def evaluate_model(classifier, X_train, X_test, y_train, y_test):
     print("Test Roc_auc-Score :", roc_auc_score(y_test, predictions_test))
     print("Test Confusion Matrix:")
     print(confusion_matrix(y_test, predictions_test))
-    return  {'Train accuracy': accuracy_score(y_train, predictions_train),
-             'Train recall': recall_score(y_train, predictions_train, zero_division=np.nan),
-             # 'Train precision': precision_score(y_train, predictions_train, zero_division=np.nan),
-             'Train f1-score': f1_score(y_train, predictions_train, zero_division=np.nan),
-             "Train Roc_auc-Score": roc_auc_score(y_train, predictions_train),
-             'Train confusion matrix': confusion_matrix(y_train, predictions_train),
-             'Test accuracy': accuracy_score(y_test, predictions_test),
-             'Test recall': recall_score(y_test, predictions_test, zero_division=np.nan),
-             'Test precision': precision_score(y_test, predictions_test, zero_division=np.nan),
-             'Test f1-score': f1_score(y_test, predictions_test, zero_division=np.nan),
-             "Test Roc_auc-Score": roc_auc_score(y_test, predictions_test),
-             'Test confusion matrix': confusion_matrix(y_test, predictions_test)
-             }
+    conf_matrix = confusion_matrix(y_test, predictions_test)
+    true_neg = conf_matrix[0][0]
+    false_pos = conf_matrix[0][1]
+    false_neg = conf_matrix[1][0]
+    true_pos = conf_matrix[1][1]
+    results_test = pd.DataFrame([
+        [target, 'test', model, accuracy_score(y_test, predictions_test), f1_score(y_test, predictions_test), roc_auc_score(y_test, predictions_test),
+         recall_score(y_test, predictions_test), precision_score(y_test, predictions_test),
+         true_neg, false_pos, false_neg, true_pos]
+    ], columns=[['target', 'type', 'model', 'accuracy', 'F1-Score', 'AUC', 'Recall', 'Precision', 'True Negative', 'False Positive', 'False Negative', 'True Positive' ]])
+    # results_test.concat(results_train)
+    results_total = pd.concat([results_test, results_train], ignore_index=True)
+    return results_total
 
 def baseline_model (X_train, y_train, X_test, y_test):
     model_baseline = DummyClassifier(strategy='most_frequent')
@@ -59,7 +70,7 @@ def logistic_regression_tuning (X_train, y_train,  target):
     max_iter = [10000]
     penalty = [None, 'l2', 'l1']
     solver = ['lbfgs', 'liblinear']
-    C = np.arange(0, 1, 0.01)
+    C = np.arange(0, 1.01, 0.01)
     random_grid = {
         'penalty': penalty,
         'solver': solver,
@@ -93,7 +104,8 @@ def decision_tree_tuning (X_train, y_train,  target):
     dt_best = dt_random.best_estimator_
     print(export_text(dt_best, feature_names=[f"{col}" for col in X_train.columns]))
     print('Best Parameters:', dt_random.best_params_, ' \n')
-    plot_tree(dt_best)
+    plt.figure(figsize=(40, 25))
+    plot_tree(dt_best, feature_names=X_train.columns.tolist(),  fontsize=6, label='none', impurity=False)
     plt.show()
     return dt_best
 
@@ -165,7 +177,6 @@ def xgboost_tuning (X_train,  y_train,  target):
     params = {
         'n_estimators': [100, 200, 300, 400, 500],
         'learning_rate': [0.05, 0.1, 0.15, 0.2, 0.25, 0.3],
-        'gamma': [0.5, 1, 1.5, 2, 5],
         'subsample': [0.6, 0.8, 1.0],
         'colsample_bytree': [0.6, 0.8, 1.0],
         'max_depth':  np.arange(5, 11, 1)
