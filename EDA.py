@@ -1,4 +1,3 @@
-import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 
@@ -10,11 +9,11 @@ def make_EDA (X,y):
     X = X.drop(columns=columns_to_drop)
 
     # Grundlegende Statistiken für numerische Features
-    # print(X.describe())
+    print(X.describe())
     print(y.describe())
 
     # Überprüfen auf fehlende Werte
-    # print(X.isnull().sum())
+    print(X.isnull().sum())
     print(y.isnull().sum())
 
     num_and_binary_columns = X.select_dtypes(include=['float64', 'int64']).columns.tolist()

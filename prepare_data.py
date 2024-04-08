@@ -1,11 +1,8 @@
-# import python scripts
-import data_load as dl
-from sklearn.preprocessing import OneHotEncoder, LabelEncoder
 
 # import packages
 import numpy as np
 import pandas as pd
-
+from sklearn.preprocessing import OneHotEncoder, LabelEncoder
 
 def prepare_data(dataframe_transactions):
     # unbedeutende erste Spalte ID löschen
@@ -75,9 +72,6 @@ def prepare_data(dataframe_transactions):
 
     X_cat = X_cat.drop(labels=['day', 'hour', 'minute', 'second'], axis=1)
     dataframe_prepared = dataframe_prepared.join(X_cat)
-    # dataframe_transactions['month_as_int'] = dataframe_transactions["tmsp"].dt.month
-
-
 
 
     # Transaktionen nach timestamp sortieren
@@ -141,33 +135,6 @@ def prepare_data(dataframe_transactions):
     # Tabelle als csv speichern
     dataframe_prepared.to_csv('Datengrundlage.csv', sep=';')
     return dataframe_prepared
-
-
-
-class MultiColumnLabelEncoder:
-    def __init__(self,columns = None):
-        self.columns = columns # array of column names to encode
-
-    def fit(self,X,y=None):
-        return self # not relevant here
-
-    def transform(self,X):
-        '''
-        Transforms columns of X specified in self.columns using
-        LabelEncoder(). If no columns specified, transforms all
-        columns in X.
-        '''
-        output = X.copy()
-        if self.columns is not None:
-            for col in self.columns:
-                output[col] = LabelEncoder().fit_transform(output[col])
-        else:
-            for colname,col in output.iteritems():
-                output[colname] = LabelEncoder().fit_transform(col)
-        return output
-
-    def fit_transform(self,X,y=None):
-        return self.fit(X,y).transform(X), self
 
 
 

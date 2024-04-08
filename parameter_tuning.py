@@ -133,17 +133,12 @@ def random_forest_tuning (X_train, y_train,  target):
 
 
 
-
 def svm_tuning (scaled_X_train,  y_train,  target):
     svm = SVC()
-    random_grid = {'C':[1,10],
-                  'kernel':['linear'],
-                  'gamma':['auto'] }
-    """
-    random_grid = {'C':[0.01,0.05,0.1,1,10, 100, 1000],
-                  'kernel':['linear','rbf'],
-                  'gamma':['scale','auto'] }
-    """
+    random_grid = {'C':[0.01, 1,10],
+                  'kernel':['linear', 'rbf'],
+                  'gamma':['auto', 'scale'] }
+
     svm_random = RandomizedSearchCV(svm, param_distributions=random_grid, n_jobs=-1, cv=5, verbose=1, scoring = target)
     # Fitting the model
     svm_random.fit(scaled_X_train, y_train)
@@ -153,23 +148,6 @@ def svm_tuning (scaled_X_train,  y_train,  target):
     return svm_best
 
 
-def extra_trees_tuning(X_train,  y_train,  target):
-    random_grid  = {
-        'n_estimators': [100, 200, 300, 400, 500],
-        'criterion': ["gini", "entropy"],
-        'max_depth': np.arange(5, 11, 1),
-        'min_samples_split': np.arange(2, 4, 1),
-        'max_leaf_nodes': np.arange(30, 81, 10),
-        'min_samples_leaf': np.arange(10, 101, 10),
-        'max_features': ['sqrt', 'log2', None]
-    }
-
-    extra_tree_clf = ExtraTreesClassifier()
-    extra_tree_random = RandomizedSearchCV(estimator=extra_tree_clf, n_jobs=-1, cv=5, verbose=1, param_distributions=random_grid, scoring=target)
-    extra_tree_random.fit(X_train,  y_train)
-    print('Best Parameters:', extra_tree_random.best_params_, ' \n')
-    extra_tree_best = extra_tree_random.best_estimator_
-    return extra_tree_best
 
 def xgboost_tuning (X_train,  y_train,  target):
 

@@ -16,25 +16,19 @@ from sklearn.preprocessing import StandardScaler, LabelEncoder
 
 # Variablen definieren
 filename_credit_transactions = r'PSP_Jan_Feb_2019.xlsx'
-# target = "roc_auc"
+target = "roc_auc"
 # target = "f1"
-target = "accuracy"
+# target = "accuracy"
 
 # entweder die folgenden beiden Befehle
 # Daten einlesen
-# unprepared_df = dl.data_load(filename=filename_credit_transactions)
+unprepared_df = dl.data_load(filename=filename_credit_transactions)
 # Daten aufbereiten
-# prepared_df = prepdata.prepare_data(unprepared_df)
-
-
-
+prepared_df = prepdata.prepare_data(unprepared_df)
 
 # oder diese beiden Befehle
-prepared_df = dl.data_load(filename='Datengrundlage.csv')
-prepared_df = prepared_df.drop(columns='Unnamed: 0', axis=1)
-
-
-
+# prepared_df = dl.data_load(filename='Datengrundlage.csv')
+# prepared_df = prepared_df.drop(columns='Unnamed: 0', axis=1)
 
 
 
@@ -45,7 +39,7 @@ y = prepared_df.success
 
 
 
-# EDA.make_EDA(X, y)
+EDA.make_EDA(X, y)
 
 # die Spalten success_fee und month_february entfernen, da diese durch month_january bzw. fail_fee erklärt werden können
 X = X.drop(columns=['success_fee', 'month_February', 'has_predecessors'], axis=1)
@@ -60,8 +54,6 @@ columns_to_drop = [col for col in X_num.columns if col.startswith(('weekday','mo
 X_trees = X_num.drop(columns=columns_to_drop)
 
 
-
-
 # Unterteilen in Test- und Trainingsmenge
 X_train, X_test, y_train, y_test = train_test_split(X_trees, y, test_size=0.2, random_state=42)
 
@@ -74,14 +66,13 @@ X_test_relevant = X_test[X_train_relevant.columns]
 
 
 
-
-"""
 # baseline model
 baseline_model= pt.baseline_model(X_train_relevant, y_train, X_test_relevant, y_test)
 print('Results baseline model')
 baseline_model_result = pt.evaluate_model(baseline_model, X_train_relevant, X_test_relevant, y_train, y_test, target, 'baseline')
 filename = 'baseline results ' + target + '.xlsx'
 baseline_model_result.to_excel(filename)
+
 
 
 best_decision_tree = pt.decision_tree_tuning(X_train_relevant,  y_train,  target)
@@ -109,7 +100,6 @@ xg_result = pt.evaluate_model(best_xg, X_train_relevant, X_test_relevant, y_trai
 filename = 'XGBoost results ' + target + '.xlsx'
 xg_result.to_excel(filename)
 fi.show_feature_importance_tree(best_xg, X_test_relevant)
-"""
 
 
 
@@ -122,19 +112,11 @@ X_mathematical = X_mathematical.drop(labels=['day', 'hour', 'minute', 'second'],
 
 # Unterteilen in Test- und Trainingsmenge
 X_train, X_test, y_train, y_test = train_test_split(X_mathematical, y, test_size=0.2, random_state=42)
-# feature Selection mit KBest und dem F-Wert (10 besten Attribute bleiben erhalten)
+# feature Selection mit KBest und dem F-Wert (20 besten Attribute bleiben erhalten)
 X_train_relevant, scores_mathematical  = fs.feature_selection_TreeClassifier_KBest(X_train, y_train, 20)
 X_train_relevant.to_csv('X_train_relevant_mathematical.csv', sep=';', decimal=',')
 scores_mathematical.to_csv('scores_mathematical.csv', sep=';', decimal=',')
 X_test_relevant = X_test[X_train_relevant.columns]
-
-# Scaling the features using pipeline
-pipeline = Pipeline([
-    ('std_scaler', StandardScaler()),
-])
-scaled_X_train = pipeline.fit_transform(X_train_relevant)
-scaled_X_test = pipeline.fit_transform(X_test_relevant)
-
 
 
 best_logistic = pt.logistic_regression_tuning(X_train_relevant,  y_train,  target)
@@ -146,18 +128,13 @@ fi.show_feature_importance(best_logistic, X_test_relevant)
 
 
 
+# Scaling the features using pipeline
+pipeline = Pipeline([
+    ('std_scaler', StandardScaler()),
+])
+scaled_X_train = pipeline.fit_transform(X_train_relevant)
+scaled_X_test = pipeline.fit_transform(X_test_relevant)
 
-
-quit()
-
-best_logistic = pt.logistic_regression_tuning(scaled_X_train,  y_train,  target)
-print('Results logistic regression')
-logistic_regression_result = pt.evaluate_model(best_logistic, scaled_X_train, scaled_X_test, y_train, y_test, target, 'logistic regression')
-filename = 'logistic regression results ' + target + '.xlsx'
-logistic_regression_result.to_excel(filename)
-fi.show_feature_importance(best_logistic, X_test_relevant)
-
-quit()
 
 best_svm = pt.svm_tuning(scaled_X_train, y_train, target)
 print('Results SVM')
@@ -168,16 +145,6 @@ fi.show_feature_importance(best_svm, X_test_relevant )
 
 
 
-
-
-
-
-"""
-best_extra_tree = pt.extra_trees_tuning(X_train_relevant,  y_train,  target)
-print('Results extra tree')
-random_extra_tree = pt.evaluate_model(best_extra_tree, X_train_relevant, X_test_relevant, y_train, y_test)
-fi.show_feature_importance_tree(best_extra_tree, X_test_relevant)
-"""
 
 
 
